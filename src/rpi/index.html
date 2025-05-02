@@ -26,7 +26,10 @@
     <div class="card">
         <h2>ESP8266 (DHT11) Data</h2>
         <div id="esp_data">
-            <p class="error">ESP8266 offline</p>
+            <p><span class="label"><i data-lucide="thermometer"></i> Temperature:</span> <span class="data" id="esp_temp">N/A °C</span></p>
+            <div class="progress-bar"><div class="progress temp-progress" id="esp_temp_bar" style="width: 0%;"></div></div>
+            <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data" id="esp_hum">N/A %</span></p>
+            <div class="progress-bar"><div class="progress hum-progress" id="esp_hum_bar" style="width: 0%;"></div></div>
         </div>
         <p class="last-update">Last updated: <span id="esp_last_update">N/A</span></p>
     </div>
@@ -43,7 +46,10 @@
     <div class="card">
         <h2>Average Values</h2>
         <div id="avg_data">
-            <p class="error">Not available (ESP8266 offline)</p>
+            <p><span class="label"><i data-lucide="thermometer"></i> Temperature:</span> <span class="data" id="avg_temp">N/A ± N/A °C</span></p>
+            <div class="progress-bar"><div class="progress temp-progress" id="avg_temp_bar" style="width: 0%;"></div></div>
+            <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data" id="avg_hum">N/A ± N/A %</span></p>
+            <div class="progress-bar"><div class="progress hum-progress" id="avg_hum_bar" style="width: 0%;"></div></div>
         </div>
         <p class="last-update">Last updated: <span id="avg_last_update">N/A</span></p>
     </div>
@@ -78,12 +84,10 @@
             document.getElementById('weather_last_update').textContent = data.weather_last_update || 'N/A';
 
             // Update ESP8266 Data
-            document.getElementById('esp_data').innerHTML = data.esp_temp !== null
-                ? `<p><span class="label"><i data-lucide="thermometer"></i> Temperature:</span> <span class="data">${data.esp_temp.toFixed(1)} °C</span></p>
-                       <div class="progress-bar"><div class="progress temp-progress" style="width: ${(data.esp_temp / 50) * 100}%;"></div></div>
-                       <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data">${data.esp_hum.toFixed(1)} %</span></p>
-                       <div class="progress-bar"><div class="progress hum-progress" style="width: ${data.esp_hum}%;"></div></div>`
-                : '<p class="error">ESP8266 offline</p>';
+            document.getElementById('esp_temp').textContent = data.esp_temp !== null ? `${data.esp_temp.toFixed(1)} °C` : 'N/A';
+            document.getElementById('esp_hum').textContent = data.esp_hum !== null ? `${data.esp_hum.toFixed(1)} %` : 'N/A';
+            document.getElementById('esp_temp_bar').style.width = data.esp_temp !== null ? (data.esp_temp / 50) * 100 + '%' : '0%';
+            document.getElementById('esp_hum_bar').style.width = data.esp_hum !== null ? data.esp_hum + '%' : '0%';
             document.getElementById('esp_last_update').textContent = data.esp_last_update || 'N/A';
 
             // Update Raspberry Pi Data
@@ -94,12 +98,10 @@
             document.getElementById('rpi_last_update').textContent = data.rpi_last_update || 'N/A';
 
             // Update Average Data
-            document.getElementById('avg_data').innerHTML = data.avg_temp !== null
-                ? `<p><span class="label"><i data-lucide="thermometer"></i> Temperature:</span> <span class="data">${data.avg_temp.toFixed(1)} ± ${data.temp_error.toFixed(1)} °C</span></p>
-                       <div class="progress-bar"><div class="progress temp-progress" style="width: ${(data.avg_temp / 50) * 100}%;"></div></div>
-                       <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data">${data.avg_hum.toFixed(1)} ± ${data.hum_error.toFixed(1)} %</span></p>
-                       <div class="progress-bar"><div class="progress hum-progress" style="width: ${data.avg_hum}%;"></div></div>`
-                : '<p class="error">Not available (ESP8266 offline)</p>';
+            document.getElementById('avg_temp').textContent = data.avg_temp !== null ? `${data.avg_temp.toFixed(1)} ± ${data.temp_error.toFixed(1)} °C` : 'N/A ± N/A °C';
+            document.getElementById('avg_hum').textContent = data.avg_hum !== null ? `${data.avg_hum.toFixed(1)} ± ${data.hum_error.toFixed(1)} %` : 'N/A ± N/A %';
+            document.getElementById('avg_temp_bar').style.width = data.avg_temp !== null ? (data.avg_temp / 50) * 100 + '%' : '0%';
+            document.getElementById('avg_hum_bar').style.width = data.avg_hum !== null ? data.avg_hum + '%' : '0%';
             document.getElementById('avg_last_update').textContent = data.avg_last_update || 'N/A';
 
             // Reinitialize Lucide Icons after updating DOM
