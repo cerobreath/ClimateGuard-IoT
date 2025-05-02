@@ -12,17 +12,23 @@
 <header>
     <h1><i data-lucide="cloud-sun-rain"></i> Raspberry Pi Climate Monitor</h1>
     <p>Real-time climate monitoring for your home</p>
+    <label class="theme-switch">
+        <input type="checkbox" id="theme-toggle">
+        <span class="slider"></span> Dark Mode
+    </label>
 </header>
 <div class="grid-container">
     <div class="card weather-card">
         <h2><i data-lucide="sun"></i> Weather in Chernihiv</h2>
         <p class="data" id="weather">Loading...</p>
+        <p class="last-update">Last updated: <span id="weather_last_update">N/A</span></p>
     </div>
     <div class="card">
         <h2>ESP8266 (DHT11) Data</h2>
         <div id="esp_data">
             <p class="error">ESP8266 offline</p>
         </div>
+        <p class="last-update">Last updated: <span id="esp_last_update">N/A</span></p>
     </div>
     <div class="card">
         <h2>Raspberry Pi (DHT22) Data</h2>
@@ -32,12 +38,14 @@
             <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data" id="rpi_hum">N/A %</span></p>
             <div class="progress-bar"><div class="progress hum-progress" id="rpi_hum_bar" style="width: 0%;"></div></div>
         </div>
+        <p class="last-update">Last updated: <span id="rpi_last_update">N/A</span></p>
     </div>
     <div class="card">
         <h2>Average Values</h2>
         <div id="avg_data">
             <p class="error">Not available (ESP8266 offline)</p>
         </div>
+        <p class="last-update">Last updated: <span id="avg_last_update">N/A</span></p>
     </div>
 </div>
 <footer>
@@ -47,6 +55,19 @@
     // Initialize Lucide Icons
     lucide.createIcons();
 
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('change', () => {
+        document.body.classList.toggle('dark-theme');
+        localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    });
+
+    // Load theme from localStorage
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-theme');
+        themeToggle.checked = true;
+    }
+
     async function updateData() {
         try {
             const response = await fetch('/data');
@@ -54,6 +75,7 @@
 
             // Update Weather
             document.getElementById('weather').textContent = data.weather || 'Weather unavailable';
+            document.getElementById('weather_last_update').textContent = data.weather_last_update || 'N/A';
 
             // Update ESP8266 Data
             document.getElementById('esp_data').innerHTML = data.esp_temp !== null
@@ -62,12 +84,14 @@
                        <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data">${data.esp_hum.toFixed(1)} %</span></p>
                        <div class="progress-bar"><div class="progress hum-progress" style="width: ${data.esp_hum}%;"></div></div>`
                 : '<p class="error">ESP8266 offline</p>';
+            document.getElementById('esp_last_update').textContent = data.esp_last_update || 'N/A';
 
             // Update Raspberry Pi Data
             document.getElementById('rpi_temp').textContent = data.rpi_temp !== null ? data.rpi_temp.toFixed(1) + ' °C' : 'N/A';
             document.getElementById('rpi_hum').textContent = data.rpi_hum !== null ? data.rpi_hum.toFixed(1) + ' %' : 'N/A';
             document.getElementById('rpi_temp_bar').style.width = data.rpi_temp !== null ? (data.rpi_temp / 50) * 100 + '%' : '0%';
             document.getElementById('rpi_hum_bar').style.width = data.rpi_hum !== null ? data.rpi_hum + '%' : '0%';
+            document.getElementById('rpi_last_update').textContent = data.rpi_last_update || 'N/A';
 
             // Update Average Data
             document.getElementById('avg_data').innerHTML = data.avg_temp !== null
@@ -76,6 +100,7 @@
                        <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data">${data.avg_hum.toFixed(1)} ± ${data.hum_error.toFixed(1)} %</span></p>
                        <div class="progress-bar"><div class="progress hum-progress" style="width: ${data.avg_hum}%;"></div></div>`
                 : '<p class="error">Not available (ESP8266 offline)</p>';
+            document.getElementById('avg_last_update').textContent = data.avg_last_update || 'N/A';
 
             // Reinitialize Lucide Icons after updating DOM
             lucide.createIcons();

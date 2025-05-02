@@ -23,9 +23,10 @@ CHAT_ID = "YOUR_CHAT_ID"
 
 # Global variables
 esp_data = {"temperature": None, "humidity": None, "last_update": None}
-rpi_data = {"temperature": None, "humidity": None}
-avg_data = {"temperature": None, "humidity": None, "temp_error": None, "hum_error": None}
+rpi_data = {"temperature": None, "humidity": None, "last_update": None}
+avg_data = {"temperature": None, "humidity": None, "temp_error": None, "hum_error": None, "last_update": None}
 weather_data = "N/A"
+weather_last_update = None
 last_esp_check = datetime.now()
 
 # Error margins for sensors
@@ -44,19 +45,30 @@ async def read_dht22():
     if temperature is not None and humidity is not None:
         rpi_data["temperature"] = temperature
         rpi_data["humidity"] = humidity
+        rpi_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     else:
         rpi_data["temperature"] = None
         rpi_data["humidity"] = None
+        rpi_data["last_update"] = None
 
 # Fetch weather data
 async def fetch_weather():
-    global weather_data
+    global weather_data, weather_last_update
     try:
         response = requests.get(WEATHER_URL)
+        response.raise_for_status()  # Raise an error for bad status codes
         data = response.json()
-        weather_data = f"{data['weather'][0]['description'].capitalize()}, {data['main']['temp']}°C"
+        if data["cod"] == 200:
+            description = data["weather"][0]["description"]
+            temp = data["main"]["temp"]
+            weather_data = f"{description} {temp:.1f}°C"
+            weather_last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            weather_data = "Weather unavailable"
+            weather_last_update = None
     except Exception as e:
         weather_data = "Weather unavailable"
+        weather_last_update = None
         logger.error(f"Weather fetch error: {e}")
 
 # Calculate averages and errors
@@ -66,6 +78,7 @@ async def calculate_averages():
         avg_data["humidity"] = None
         avg_data["temp_error"] = None
         avg_data["hum_error"] = None
+        avg_data["last_update"] = None
         return
 
     # Average temperature and humidity
@@ -75,6 +88,7 @@ async def calculate_averages():
     # Combined error (root mean square of individual errors)
     avg_data["temp_error"] = ((DHT11_TEMP_ERROR**2 + DHT22_TEMP_ERROR**2) ** 0.5) / 2
     avg_data["hum_error"] = ((DHT11_HUM_ERROR**2 + DHT22_HUM_ERROR**2) ** 0.5) / 2
+    avg_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Handle ESP8266 data
 async def handle_esp_update(request):
@@ -83,7 +97,7 @@ async def handle_esp_update(request):
         data = await request.json()
         esp_data["temperature"] = data["temperature"]
         esp_data["humidity"] = data["humidity"]
-        esp_data["last_update"] = datetime.now()
+        esp_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         last_esp_check = datetime.now()
 
         # Update averages
@@ -108,14 +122,18 @@ async def handle_favicon(request):
 async def get_data(request):
     return web.json_response({
         "weather": weather_data,
+        "weather_last_update": weather_last_update,
         "esp_temp": esp_data["temperature"],
         "esp_hum": esp_data["humidity"],
+        "esp_last_update": esp_data["last_update"],
         "rpi_temp": rpi_data["temperature"],
         "rpi_hum": rpi_data["humidity"],
+        "rpi_last_update": rpi_data["last_update"],
         "avg_temp": avg_data["temperature"],
         "avg_hum": avg_data["humidity"],
         "temp_error": avg_data["temp_error"],
-        "hum_error": avg_data["hum_error"]
+        "hum_error": avg_data["hum_error"],
+        "avg_last_update": avg_data["last_update"]
     })
 
 # Serve styles.css
@@ -166,7 +184,7 @@ async def check_esp_status(updater):
     global last_esp_check
     while True:
         await asyncio.sleep(600)  # Every 10 minutes
-        if esp_data["last_update"] is None or (datetime.now() - esp_data["last_update"]) > timedelta(minutes=1):
+        if esp_data["last_update"] is None or (datetime.now() - datetime.strptime(esp_data["last_update"], "%Y-%m-%d %H:%M:%S")) > timedelta(minutes=1):
             updater.bot.send_message(chat_id=CHAT_ID, text="⚠️ Warning: ESP8266 not responding")
             last_esp_check = datetime.now()
 
