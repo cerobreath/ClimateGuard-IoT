@@ -14,16 +14,16 @@ DHT_SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 4  # GPIO4
 
 # Weather API settings
-WEATHER_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
-CITY = "YOUR_CITY"
+WEATHER_API_KEY = "5fc50717357720e27a8168ebcb7ae72e"
+CITY = "Chernihiv"
 WEATHER_URL = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric&lang=en"
 
 # Telegram bot settings
-TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+TELEGRAM_TOKEN = "7109351710:AAGdg_i6Fnc7abyrcoQY3Y05nV5GCSCe8Sc"
+CHAT_ID = "7109351710"
 
 # Logging setup
-LOG_FILE = "logs/climate_monitor.log"
+LOG_FILE = "logs/climateguard.log"
 LOG_MAX_BYTES = 1024 * 1024  # 1 MB
 LOG_BACKUP_COUNT = 5  # Keep 5 backup files
 logger = logging.getLogger(__name__)
@@ -55,12 +55,12 @@ async def read_dht22():
         rpi_data["temperature"] = temperature
         rpi_data["humidity"] = humidity
         rpi_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        logger.info(f"DHT22 read successfully - Temp: {temperature:.1f}°C, Hum: {humidity:.1f}%")
+        logger.info(f"🌡️ DHT22 read successfully - Temp: {temperature:.1f}°C, Hum: {humidity:.1f}%")
     else:
         rpi_data["temperature"] = None
         rpi_data["humidity"] = None
         rpi_data["last_update"] = None
-        logger.warning("Failed to read DHT22 sensor data")
+        logger.warning("🌡️ Failed to read DHT22 sensor data")
 
 # Fetch weather data
 async def fetch_weather():
@@ -74,15 +74,15 @@ async def fetch_weather():
             temp = data["main"]["temp"]
             weather_data = f"{description} {temp:.1f}°C"
             weather_last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            logger.info(f"Weather fetched - {weather_data}")
+            logger.info(f"🌦️ Weather fetched - {weather_data}")
         else:
             weather_data = "Weather unavailable"
             weather_last_update = None
-            logger.warning(f"Weather API returned code {data['cod']} - {data.get('message', 'No message')}")
+            logger.warning(f"🌦️ Weather API returned code {data['cod']} - {data.get('message', 'No message')}")
     except Exception as e:
         weather_data = "Weather unavailable"
         weather_last_update = None
-        logger.error(f"Weather fetch error: {e}")
+        logger.error(f"🌦️ Weather fetch error: {e}")
 
 # Calculate averages and errors
 async def calculate_averages():
@@ -92,9 +92,9 @@ async def calculate_averages():
         avg_data["temp_error"] = None
         avg_data["hum_error"] = None
         avg_data["last_update"] = None
-        logger.warning("Cannot calculate averages - Missing data from ESP8266 or DHT22")
+        logger.warning("📊 Cannot calculate averages - Missing data from ESP8266 or DHT22")
         if esp_data["temperature"] is None:
-            logger.warning("ESP8266 data is unavailable - Possible disconnection")
+            logger.warning("📡 ESP8266 data is unavailable - Possible disconnection")
         return
 
     # Average temperature and humidity
@@ -105,7 +105,7 @@ async def calculate_averages():
     avg_data["temp_error"] = ((DHT11_TEMP_ERROR**2 + DHT22_TEMP_ERROR**2) ** 0.5) / 2
     avg_data["hum_error"] = ((DHT11_HUM_ERROR**2 + DHT22_HUM_ERROR**2) ** 0.5) / 2
     avg_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logger.info(f"Averages calculated - Temp: {avg_data['temperature']:.1f}±{avg_data['temp_error']:.1f}°C, Hum: {avg_data['humidity']:.1f}±{avg_data['hum_error']:.1f}%")
+    logger.info(f"📊 Averages calculated - Temp: {avg_data['temperature']:.1f}±{avg_data['temp_error']:.1f}°C, Hum: {avg_data['humidity']:.1f}±{avg_data['hum_error']:.1f}%")
 
 # Handle ESP8266 data
 async def handle_esp_update(request):
@@ -116,7 +116,7 @@ async def handle_esp_update(request):
         esp_data["humidity"] = data["humidity"]
         esp_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         last_esp_check = datetime.now()
-        logger.info(f"ESP8266 data received - Temp: {data['temperature']:.1f}°C, Hum: {data['humidity']:.1f}%")
+        logger.info(f"📡 ESP8266 data received - Temp: {data['temperature']:.1f}°C, Hum: {data['humidity']:.1f}%")
 
         # Update averages
         await calculate_averages()
@@ -129,19 +129,19 @@ async def handle_esp_update(request):
         }
         return web.json_response(response)
     except Exception as e:
-        logger.error(f"ESP update error: {e}")
+        logger.error(f"📡 ESP update error: {e}")
         return web.Response(status=500)
 
 # Handle favicon request
 async def handle_favicon(request):
-    logger.debug("Favicon request received")
+    logger.debug("🔍 Favicon request received")
     return web.Response(status=204)  # No content
 
 # API endpoint for data
 async def get_data(request):
     global first_data_access
     if first_data_access:
-        logger.info("Data endpoint accessed for the first time")
+        logger.info("📋 Data endpoint accessed for the first time")
         first_data_access = False
     return web.json_response({
         "weather": weather_data,
@@ -161,52 +161,70 @@ async def get_data(request):
 
 # Serve styles.css
 async def handle_styles(request):
-    logger.debug("Styles.css requested")
+    logger.debug("🎨 Styles.css requested")
     with open("styles.css", "r") as f:
         return web.Response(text=f.read(), content_type="text/css")
 
 # Web interface
 async def handle_web(request):
-    logger.debug("Web interface requested")
+    logger.debug("🌐 Web interface requested")
     with open("index.html", "r") as f:
         return web.Response(text=f.read(), content_type="text/html")
 
 # Telegram bot handlers
 def start(update, context):
-    logger.info("Telegram bot /start command received")
-    update.message.reply_text("Welcome to ClimateGuardianBot! Use commands to get data:\n/weather\n/average\n/esp\n/rpi")
+    logger.info("🤖 Telegram bot /start command received")
+    update.message.reply_text(
+        "🌱 Welcome to ClimateGuard Bot! 🌡️\n"
+        "Your friendly companion for real-time climate monitoring! 🌦️\n"
+        "Stay updated with temperature, humidity, and weather forecasts from Chernihiv! 🤖\n"
+        "Click the buttons below to explore the environment around you! 🌍\n\n"
+        "📌 Available Commands:\n"
+        "🌡️ /weather - Check the current weather\n"
+        "📊 /average - View averaged sensor data\n"
+        "📡 /esp - Get ESP8266 (DHT11) readings\n"
+        "🌐 /rpi - Get Raspberry Pi (DHT22) readings"
+    )
 
 def weather(update, context):
-    logger.info("Telegram bot /weather command received")
-    update.message.reply_text(f"Weather in Chernihiv: {weather_data}")
+    logger.info("🌦️ Telegram bot /weather command received")
+    update.message.reply_text(
+        f"🌤️ Weather in Chernihiv:\n"
+        f"🌡️ {weather_data}\n"
+        f"⏰ Last updated: {weather_last_update or 'N/A'}"
+    )
 
 def average(update, context):
-    logger.info("Telegram bot /average command received")
+    logger.info("📊 Telegram bot /average command received")
     if avg_data["temperature"] is None:
-        update.message.reply_text("Average data not available (ESP8266 offline)")
+        update.message.reply_text("📡 Average data unavailable - ESP8266 might be offline! ⚠️")
     else:
         update.message.reply_text(
-            f"Average Temperature: {avg_data['temperature']:.1f} ± {avg_data['temp_error']:.1f} °C\n"
-            f"Average Humidity: {avg_data['humidity']:.1f} ± {avg_data['hum_error']:.1f} %"
+            f"📈 Average Climate Data:\n"
+            f"🌡️ Temperature: {avg_data['temperature']:.1f} ± {avg_data['temp_error']:.1f} °C\n"
+            f"💧 Humidity: {avg_data['humidity']:.1f} ± {avg_data['hum_error']:.1f} %\n"
+            f"⏰ Last updated: {avg_data['last_update']}"
         )
 
 def esp(update, context):
-    logger.info("Telegram bot /esp command received")
+    logger.info("📡 Telegram bot /esp command received")
     if esp_data["temperature"] is None:
-        update.message.reply_text("ESP8266 offline")
+        update.message.reply_text("📡 ESP8266 offline - Check the connection! ⚠️")
     else:
         update.message.reply_text(
-            f"ESP8266 (DHT11):\n"
-            f"Temperature: {esp_data['temperature']:.1f} °C\n"
-            f"Humidity: {esp_data['humidity']:.1f} %"
+            f"📡 ESP8266 (DHT11) Data:\n"
+            f"🌡️ Temperature: {esp_data['temperature']:.1f} °C\n"
+            f"💧 Humidity: {esp_data['humidity']:.1f} %\n"
+            f"⏰ Last updated: {esp_data['last_update']}"
         )
 
 def rpi(update, context):
-    logger.info("Telegram bot /rpi command received")
+    logger.info("🌐 Telegram bot /rpi command received")
     update.message.reply_text(
-        f"Raspberry Pi (DHT22):\n"
-        f"Temperature: {rpi_data['temperature']:.1f} °C\n"
-        f"Humidity: {rpi_data['humidity']:.1f} %"
+        f"🌐 Raspberry Pi (DHT22) Data:\n"
+        f"🌡️ Temperature: {rpi_data['temperature']:.1f} °C\n"
+        f"💧 Humidity: {rpi_data['humidity']:.1f} %\n"
+        f"⏰ Last updated: {rpi_data['last_update'] or 'N/A'}"
     )
 
 # Check ESP8266 status periodically
@@ -215,15 +233,15 @@ async def check_esp_status(updater):
     while True:
         await asyncio.sleep(600)  # Every 10 minutes
         if esp_data["last_update"] is None or (datetime.now() - datetime.strptime(esp_data["last_update"], "%Y-%m-%d %H:%M:%S")) > timedelta(minutes=1):
-            logger.warning("ESP8266 not responding")
-            updater.bot.send_message(chat_id=CHAT_ID, text="⚠️ Warning: ESP8266 not responding")
+            logger.warning("📡 ESP8266 not responding")
+            updater.bot.send_message(chat_id=CHAT_ID, text="⚠️ ClimateGuard Alert: 📡 ESP8266 not responding! Check the connection!")
             last_esp_check = datetime.now()
         else:
-            logger.debug("ESP8266 status check - OK")
+            logger.debug("📡 ESP8266 status check - OK")
 
 # Main loop
 async def main():
-    logger.info("Starting Climate Monitor application")
+    logger.info("🌱 Starting ClimateGuard application")
     # Setup web server
     app = web.Application()
     app.router.add_post('/update', handle_esp_update)
@@ -235,10 +253,10 @@ async def main():
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 80)
     await site.start()
-    logger.info("Web server started on 0.0.0.0:80")
+    logger.info("🌐 Web server started on 0.0.0.0:80")
 
     # Setup Telegram bot
-    logger.info("Starting Telegram bot")
+    logger.info("🤖 Starting ClimateGuard Bot")
     updater = Updater(TELEGRAM_TOKEN, use_context=True)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
@@ -247,7 +265,7 @@ async def main():
     dp.add_handler(CommandHandler("esp", esp))
     dp.add_handler(CommandHandler("rpi", rpi))
     updater.start_polling()
-    logger.info("Telegram bot polling started")
+    logger.info("🤖 ClimateGuard Bot polling started")
 
     # Start ESP status check
     asyncio.create_task(check_esp_status(updater))
