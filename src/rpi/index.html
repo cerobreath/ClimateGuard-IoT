@@ -5,42 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raspberry Pi Climate Monitor</title>
     <link rel="stylesheet" href="/styles.css">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-<h1>🌦️ Raspberry Pi Climate Monitor</h1>
-<div class="section">
-    <h2>Weather in Chernihiv</h2>
-    <p class="data" id="weather">Loading...</p>
+<header>
+    <h1><i data-lucide="cloud-sun-rain"></i> Raspberry Pi Climate Monitor</h1>
+    <p>Real-time climate monitoring for your home</p>
+</header>
+<div class="grid-container">
+    <div class="card weather-card">
+        <h2><i data-lucide="sun"></i> Weather in Chernihiv</h2>
+        <p class="data" id="weather">Loading...</p>
+    </div>
+    <div class="card">
+        <h2>ESP8266 (DHT11) Data</h2>
+        <div id="esp_data">
+            <p class="error">ESP8266 offline</p>
+        </div>
+    </div>
+    <div class="card">
+        <h2>Raspberry Pi (DHT22) Data</h2>
+        <div id="rpi_data">
+            <p><span class="label"><i data-lucide="thermometer"></i> Temperature:</span> <span class="data" id="rpi_temp">N/A °C</span></p>
+            <div class="progress-bar"><div class="progress temp-progress" id="rpi_temp_bar" style="width: 0%;"></div></div>
+            <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data" id="rpi_hum">N/A %</span></p>
+            <div class="progress-bar"><div class="progress hum-progress" id="rpi_hum_bar" style="width: 0%;"></div></div>
+        </div>
+    </div>
+    <div class="card">
+        <h2>Average Values</h2>
+        <div id="avg_data">
+            <p class="error">Not available (ESP8266 offline)</p>
+        </div>
+    </div>
 </div>
-<div class="section">
-    <h2>ESP8266 (DHT11) Data</h2>
-    <div id="esp_data"><p class="error">ESP8266 offline</p></div>
-</div>
-<div class="section">
-    <h2>Raspberry Pi (DHT22) Data</h2>
-    <p><span class="label">Temperature:</span> <span class="data" id="rpi_temp">N/A °C</span></p>
-    <p><span class="label">Humidity:</span> <span class="data" id="rpi_hum">N/A %</span></p>
-</div>
-<div class="section">
-    <h2>Average Values</h2>
-    <div id="avg_data"><p class="error">Not available (ESP8266 offline)</p></div>
-</div>
+<footer>
+    <p>© 2025 IoT Climate Monitor</p>
+</footer>
 <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
     async function updateData() {
         try {
             const response = await fetch('/data');
             const data = await response.json();
+
+            // Update Weather
             document.getElementById('weather').textContent = data.weather || 'Weather unavailable';
+
+            // Update ESP8266 Data
             document.getElementById('esp_data').innerHTML = data.esp_temp !== null
-                ? `<p><span class="label">Temperature:</span> <span class="data">${data.esp_temp.toFixed(1)} °C</span></p>
-                       <p><span class="label">Humidity:</span> <span class="data">${data.esp_hum.toFixed(1)} %</span></p>`
+                ? `<p><span class="label"><i data-lucide="thermometer"></i> Temperature:</span> <span class="data">${data.esp_temp.toFixed(1)} °C</span></p>
+                       <div class="progress-bar"><div class="progress temp-progress" style="width: ${(data.esp_temp / 50) * 100}%;"></div></div>
+                       <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data">${data.esp_hum.toFixed(1)} %</span></p>
+                       <div class="progress-bar"><div class="progress hum-progress" style="width: ${data.esp_hum}%;"></div></div>`
                 : '<p class="error">ESP8266 offline</p>';
+
+            // Update Raspberry Pi Data
             document.getElementById('rpi_temp').textContent = data.rpi_temp !== null ? data.rpi_temp.toFixed(1) + ' °C' : 'N/A';
             document.getElementById('rpi_hum').textContent = data.rpi_hum !== null ? data.rpi_hum.toFixed(1) + ' %' : 'N/A';
+            document.getElementById('rpi_temp_bar').style.width = data.rpi_temp !== null ? (data.rpi_temp / 50) * 100 + '%' : '0%';
+            document.getElementById('rpi_hum_bar').style.width = data.rpi_hum !== null ? data.rpi_hum + '%' : '0%';
+
+            // Update Average Data
             document.getElementById('avg_data').innerHTML = data.avg_temp !== null
-                ? `<p><span class="label">Temperature:</span> <span class="data">${data.avg_temp.toFixed(1)} ± ${data.temp_error.toFixed(1)} °C</span></p>
-                       <p><span class="label">Humidity:</span> <span class="data">${data.avg_hum.toFixed(1)} ± ${data.hum_error.toFixed(1)} %</span></p>`
+                ? `<p><span class="label"><i data-lucide="thermometer"></i> Temperature:</span> <span class="data">${data.avg_temp.toFixed(1)} ± ${data.temp_error.toFixed(1)} °C</span></p>
+                       <div class="progress-bar"><div class="progress temp-progress" style="width: ${(data.avg_temp / 50) * 100}%;"></div></div>
+                       <p><span class="label"><i data-lucide="droplet"></i> Humidity:</span> <span class="data">${data.avg_hum.toFixed(1)} ± ${data.hum_error.toFixed(1)} %</span></p>
+                       <div class="progress-bar"><div class="progress hum-progress" style="width: ${data.avg_hum}%;"></div></div>`
                 : '<p class="error">Not available (ESP8266 offline)</p>';
+
+            // Reinitialize Lucide Icons after updating DOM
+            lucide.createIcons();
         } catch (error) {
             console.error('Error updating data:', error);
         }
