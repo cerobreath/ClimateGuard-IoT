@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspberry Pi Climate Monitor</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<h1>🌦️ Raspberry Pi Climate Monitor</h1>
+<div class="section">
+    <h2>Weather in Chernihiv</h2>
+    <p class="data" id="weather">Loading...</p>
+</div>
+<div class="section">
+    <h2>ESP8266 (DHT11) Data</h2>
+    <div id="esp_data"><p class="error">ESP8266 offline</p></div>
+</div>
+<div class="section">
+    <h2>Raspberry Pi (DHT22) Data</h2>
+    <p><span class="label">Temperature:</span> <span class="data" id="rpi_temp">N/A °C</span></p>
+    <p><span class="label">Humidity:</span> <span class="data" id="rpi_hum">N/A %</span></p>
+</div>
+<div class="section">
+    <h2>Average Values</h2>
+    <div id="avg_data"><p class="error">Not available (ESP8266 offline)</p></div>
+</div>
+<script>
+    async function updateData() {
+        try {
+            const response = await fetch('/data');
+            const data = await response.json();
+            document.getElementById('weather').textContent = data.weather || 'Weather unavailable';
+            document.getElementById('esp_data').innerHTML = data.esp_temp !== null
+                ? `<p><span class="label">Temperature:</span> <span class="data">${data.esp_temp.toFixed(1)} °C</span></p>
+                       <p><span class="label">Humidity:</span> <span class="data">${data.esp_hum.toFixed(1)} %</span></p>`
+                : '<p class="error">ESP8266 offline</p>';
+            document.getElementById('rpi_temp').textContent = data.rpi_temp !== null ? data.rpi_temp.toFixed(1) + ' °C' : 'N/A';
+            document.getElementById('rpi_hum').textContent = data.rpi_hum !== null ? data.rpi_hum.toFixed(1) + ' %' : 'N/A';
+            document.getElementById('avg_data').innerHTML = data.avg_temp !== null
+                ? `<p><span class="label">Temperature:</span> <span class="data">${data.avg_temp.toFixed(1)} ± ${data.temp_error.toFixed(1)} °C</span></p>
+                       <p><span class="label">Humidity:</span> <span class="data">${data.avg_hum.toFixed(1)} ± ${data.hum_error.toFixed(1)} %</span></p>`
+                : '<p class="error">Not available (ESP8266 offline)</p>';
+        } catch (error) {
+            console.error('Error updating data:', error);
+        }
+    }
+    setInterval(updateData, 5000); // Update every 5 seconds
+    updateData(); // Initial update
+</script>
+</body>
+</html>

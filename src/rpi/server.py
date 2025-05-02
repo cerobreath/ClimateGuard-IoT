@@ -13,13 +13,13 @@ DHT_SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 4  # GPIO4
 
 # Weather API settings
-WEATHER_API_KEY = "..."
-CITY = "Chernihiv"
+WEATHER_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
+CITY = "YOUR_CITY"
 WEATHER_URL = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric&lang=en"
 
 # Telegram bot settings
-TELEGRAM_TOKEN = "..."
-CHAT_ID = "..."
+TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
 
 # Global variables
 esp_data = {"temperature": None, "humidity": None, "last_update": None}
@@ -104,75 +104,29 @@ async def handle_esp_update(request):
 async def handle_favicon(request):
     return web.Response(status=204)  # No content
 
+# API endpoint for data
+async def get_data(request):
+    return web.json_response({
+        "weather": weather_data,
+        "esp_temp": esp_data["temperature"],
+        "esp_hum": esp_data["humidity"],
+        "rpi_temp": rpi_data["temperature"],
+        "rpi_hum": rpi_data["humidity"],
+        "avg_temp": avg_data["temperature"],
+        "avg_hum": avg_data["humidity"],
+        "temp_error": avg_data["temp_error"],
+        "hum_error": avg_data["hum_error"]
+    })
+
+# Serve styles.css
+async def handle_styles(request):
+    with open("styles.css", "r") as f:
+        return web.Response(text=f.read(), content_type="text/css")
+
 # Web interface
 async def handle_web(request):
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Raspberry Pi Climate Monitor</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; background: #f0f0f0; text-align: center; padding: 20px; }}
-            h1 {{ color: #333; }}
-            .section {{ margin: 20px 0; padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
-            .label {{ font-weight: bold; color: #555; }}
-            .data {{ font-size: 1.5em; color: #2c3e50; }}
-            .error {{ color: #e74c3c; }}
-        </style>
-    </head>
-    <body>
-        <h1>🌦️ Raspberry Pi Climate Monitor</h1>
-        <div class="section">
-            <h2>Weather in Chernihiv</h2>
-            <p class="data">{weather}</p>
-        </div>
-        <div class="section">
-            <h2>ESP8266 (DHT11) Data</h2>
-            {esp_data}
-        </div>
-        <div class="section">
-            <h2>Raspberry Pi (DHT22) Data</h2>
-            <p><span class="label">Temperature:</span> <span class="data">{rpi_temp} °C</span></p>
-            <p><span class="label">Humidity:</span> <span class="data">{rpi_hum} %</span></p>
-        </div>
-        <div class="section">
-            <h2>Average Values</h2>
-            {avg_data}
-        </div>
-    </body>
-    </html>
-    """
-
-    # Format ESP data
-    esp_html = "<p class='error'>ESP8266 offline</p>"
-    if esp_data["temperature"] is not None:
-        esp_html = f"""
-        <p><span class="label">Temperature:</span> <span class="data">{esp_data['temperature']:.1f} °C</span></p>
-        <p><span class="label">Humidity:</span> <span class="data">{esp_data['humidity']:.1f} %</span></p>
-        """
-
-    # Format average data
-    avg_html = "<p class='error'>Not available (ESP8266 offline)</p>"
-    if avg_data["temperature"] is not None:
-        avg_html = f"""
-        <p><span class="label">Temperature:</span> <span class="data">{avg_data['temperature']:.1f} ± {avg_data['temp_error']:.1f} °C</span></p>
-        <p><span class="label">Humidity:</span> <span class="data">{avg_data['humidity']:.1f} ± {avg_data['hum_error']:.1f} %</span></p>
-        """
-
-    # Format Raspberry Pi data
-    rpi_temp = rpi_data["temperature"] if rpi_data["temperature"] is not None else "N/A"
-    rpi_hum = rpi_data["humidity"] if rpi_data["humidity"] is not None else "N/A"
-
-    html = html.format(
-        weather=weather_data,
-        esp_data=esp_html,
-        rpi_temp=rpi_temp,
-        rpi_hum=rpi_hum,
-        avg_data=avg_html
-    )
-    return web.Response(text=html, content_type='text/html')
+    with open("index.html", "r") as f:
+        return web.Response(text=f.read(), content_type="text/html")
 
 # Telegram bot handlers
 def start(update, context):
@@ -222,6 +176,8 @@ async def main():
     app = web.Application()
     app.router.add_post('/update', handle_esp_update)
     app.router.add_get('/', handle_web)
+    app.router.add_get('/data', get_data)
+    app.router.add_get('/styles.css', handle_styles)
     app.router.add_get('/favicon.ico', handle_favicon)
     runner = web.AppRunner(app)
     await runner.setup()
