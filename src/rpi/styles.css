@@ -10,12 +10,6 @@ body {
     color: #2C3E50;
     text-align: center;
     padding: 20px;
-    transition: background 0.3s, color 0.3s;
-}
-
-body.dark-theme {
-    background: #1A2526;
-    color: #E0E0E0;
 }
 
 header {
@@ -31,61 +25,14 @@ h1 {
     gap: 10px;
 }
 
+h1 [data-lucide] {
+    width: 1.5em;
+    height: 1.5em;
+}
+
 header p {
     font-size: 1.1em;
     color: #7F8C8D;
-}
-
-body.dark-theme header p {
-    color: #A0A0A0;
-}
-
-.theme-switch {
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    font-size: 1em;
-    color: #2C3E50;
-}
-
-body.dark-theme .theme-switch {
-    color: #E0E0E0;
-}
-
-.theme-switch input {
-    display: none;
-}
-
-.theme-switch .slider {
-    width: 40px;
-    height: 20px;
-    background: #ccc;
-    border-radius: 20px;
-    position: relative;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.theme-switch .slider:before {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    background: white;
-    border-radius: 50%;
-    top: 2px;
-    left: 2px;
-    transition: transform 0.3s;
-}
-
-.theme-switch input:checked + .slider {
-    background: #4D90FE;
-}
-
-.theme-switch input:checked + .slider:before {
-    transform: translateX(20px);
 }
 
 .grid-container {
@@ -102,12 +49,6 @@ body.dark-theme .theme-switch {
     padding: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-align: left;
-    transition: background 0.3s;
-}
-
-body.dark-theme .card {
-    background: #2C3E50;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .weather-card {
@@ -124,10 +65,9 @@ body.dark-theme .card {
     gap: 8px;
 }
 
-.weather-card p.data {
-    font-size: 1.2em; /* Зменшено з 1.5em */
+.weather-card p {
+    font-size: 1.5em;
     margin-top: 10px;
-    margin-bottom: 15px; /* Додано відступ знизу */
 }
 
 .card h2 {
@@ -136,30 +76,10 @@ body.dark-theme .card {
     color: #2C3E50;
 }
 
-body.dark-theme .card h2 {
-    color: #E0E0E0;
-}
-
 .card p {
     margin: 10px 0;
     display: flex;
     align-items: center;
-}
-
-.last-update {
-    font-size: 0.8em; /* Зменшено з 0.9em */
-    color: #7F8C8D;
-    margin-top: 10px;
-    text-align: center;
-}
-
-body.dark-theme .last-update {
-    color: #A0A0A0;
-}
-
-.weather-card .last-update {
-    color: #DDEEFF; 
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); 
 }
 
 .label {
@@ -169,10 +89,6 @@ body.dark-theme .last-update {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-body.dark-theme .label {
-    color: #E0E0E0;
 }
 
 .label [data-lucide] {
@@ -190,10 +106,6 @@ body.dark-theme .label {
     text-align: center;
 }
 
-body.dark-theme .error {
-    color: #FF6B6B;
-}
-
 .progress-bar {
     width: 100%;
     height: 8px;
@@ -203,39 +115,23 @@ body.dark-theme .error {
     margin: 5px 0 10px 0;
 }
 
-body.dark-theme .progress-bar {
-    background: #4A5A5B;
-}
-
 .progress {
     height: 100%;
-    transition: width 1s ease-in-out;
+    transition: width 0.5s ease;
 }
 
 .temp-progress {
     background: linear-gradient(to right, #E0E0E0, #FF9F43);
 }
 
-body.dark-theme .temp-progress {
-    background: linear-gradient(to right, #4A5A5B, #FF9F43);
-}
-
 .hum-progress {
     background: linear-gradient(to right, #E0E0E0, #74B9FF);
-}
-
-body.dark-theme .hum-progress {
-    background: linear-gradient(to right, #4A5A5B, #74B9FF);
 }
 
 footer {
     margin-top: 30px;
     font-size: 0.9em;
     color: #7F8C8D;
-}
-
-body.dark-theme footer {
-    color: #A0A0A0;
 }
 
 /* Mobile adjustments */

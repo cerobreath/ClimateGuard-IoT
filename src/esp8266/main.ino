@@ -13,8 +13,8 @@
 #include <ArduinoJson.h>
 
 // Wi-Fi credentials
-const char* ssid = "...";
-const char* password = "...";
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
 
 // Static IP configuration
 IPAddress staticIP(192, 168, 0, 51);
@@ -71,7 +71,8 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-  <h2>🌡 ESP8266 DHT11 Monitor</h2>
+  <h2>ESP8266 DHT11 Monitor</h2>
+  <h3>Minimal backup interface</h3>
   <p><span class="icon">🌡️</span><span class="label">Temperature:</span>
     <span id="temperature" class="data">%TEMPERATURE%</span>
     <span class="units">°C</span>
@@ -80,7 +81,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     <span id="humidity" class="data">%HUMIDITY%</span>
     <span class="units">%</span>
   </p>
-  <div class="footer">IP: %IP%</div>
 <script>
 setInterval(() => {
   fetch("/temperature").then(res => res.text()).then(data => {
