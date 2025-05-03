@@ -1,14 +1,14 @@
 # 🌱 ClimateGuard-IoT
 
-🎓 **Developed by**:
-- Denys Lysenok
-- Anna Yakovleva
-**Institution**: National University "Chernihiv Polytechnic"
-**Faculty**: Educational and Scientific Institute of Electronic and Information Technologies
-**Specialty**: 123 Computer Engineering, 3rd Year  
-**GitHub**: [@cerobreath](https://github.com/cerobreath) | Collaborator: [@Anna-Ackerman](https://github.com/Anna-Ackerman)
-
 🌡️ *ClimateGuard-IoT* is an IoT-based climate monitoring system designed for real-time tracking of temperature and humidity using Raspberry Pi Zero W and ESP8266 HW-364a. Featuring a web interface with live updates, a Telegram bot for remote access, and an OLED display for local visualization, this project combines hardware and software to deliver a seamless monitoring experience.
+
+**Institution**: National University "Chernihiv Polytechnic"
+
+**Faculty**: Educational and Scientific Institute of Electronic and Information Technologies
+
+**Specialty**: 123 Computer Engineering, 3rd Year  
+
+**GitHub**: [@cerobreath](https://github.com/cerobreath) | Collaborator: [@Anna-Ackerman](https://github.com/Anna-Ackerman)
 
 ---
 
