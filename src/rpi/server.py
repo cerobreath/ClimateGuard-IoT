@@ -14,13 +14,13 @@ DHT_SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 4  # GPIO4
 
 # Weather API settings
-WEATHER_API_KEY = "5fc50717357720e27a8168ebcb7ae72e"
-CITY = "Chernihiv"
+WEATHER_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
+CITY = "YOUR_CITY"
 WEATHER_URL = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric&lang=en"
 
 # Telegram bot settings
-TELEGRAM_TOKEN = "7109351710:AAGdg_i6Fnc7abyrcoQY3Y05nV5GCSCe8Sc"
-CHAT_ID = "7109351710"
+TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
 
 # Logging setup
 LOG_FILE = "logs/climateguard.log"
