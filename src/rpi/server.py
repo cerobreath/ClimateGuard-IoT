@@ -9,70 +9,71 @@ from telegram.ext import Updater, CommandHandler
 import logging
 from logging.handlers import RotatingFileHandler
 
-# DHT22 settings
+# Налаштування датчика DHT22
 DHT_SENSOR = Adafruit_DHT.DHT22
-DHT_PIN = 4  # GPIO4
+DHT_PIN = 4  # GPIO4 - пін для підключення датчика
 
-# Weather API settings
+# Налаштування API погоди
 WEATHER_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
 CITY = "YOUR_CITY"
-WEATHER_URL = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric&lang=en"
+WEATHER_URL = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric&lang=en"  # URL для отримання погоди
 
-# Telegram bot settings
+# Налаштування Telegram бота
 TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
 CHAT_ID = "YOUR_CHAT_ID"
 
-# Logging setup
+# Налаштування логування
 LOG_FILE = "logs/climateguard.log"
-LOG_MAX_BYTES = 1024 * 1024  # 1 MB
-LOG_BACKUP_COUNT = 5  # Keep 5 backup files
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = RotatingFileHandler(LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT)
-formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+LOG_MAX_BYTES = 1024 * 1024  # Максимальний розмір лог-файлу: 1 MB
+LOG_BACKUP_COUNT = 5  # Кількість бекапів логів
+logger = logging.getLogger(__name__)  # Ініціалізація логера
+logger.setLevel(logging.DEBUG)  # Встановлення рівня деталізації логів
+handler = RotatingFileHandler(LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT)  # Налаштування ротації логів
+formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')  # Форматування записів
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-# Global variables
-esp_data = {"temperature": None, "humidity": None, "last_update": None}
-rpi_data = {"temperature": None, "humidity": None, "last_update": None}
-avg_data = {"temperature": None, "humidity": None, "temp_error": None, "hum_error": None, "last_update": None}
-weather_data = "N/A"
-weather_last_update = None
-last_esp_check = datetime.now()
-first_data_access = True
+# Глобальні змінні для зберігання даних
+esp_data = {"temperature": None, "humidity": None, "last_update": None}  # Дані від ESP8266
+rpi_data = {"temperature": None, "humidity": None, "last_update": None}  # Дані від Raspberry Pi (DHT22)
+avg_data = {"temperature": None, "humidity": None, "temp_error": None, "hum_error": None, "last_update": None}  # Середні значення та похибки
+weather_data = "N/A"  # Дані погоди, за замовчуванням "N/A"
+weather_last_update = None  # Час останнього оновлення погоди
+last_esp_check = datetime.now()  # Час останньої перевірки ESP8266
+first_data_access = True  # Прапорець для першого доступу до даних
 
-# Error margins for sensors
-DHT11_TEMP_ERROR = 2.0  # ±2°C for DHT11
-DHT11_HUM_ERROR = 5.0   # ±5% for DHT11
-DHT22_TEMP_ERROR = 0.5  # ±0.5°C for DHT22
-DHT22_HUM_ERROR = 2.0   # ±2% for DHT22
+# Похибки датчиків
+DHT11_TEMP_ERROR = 2.0  # ±2°C для DHT11
+DHT11_HUM_ERROR = 5.0   # ±5% для DHT11
+DHT22_TEMP_ERROR = 0.5  # ±0.5°C для DHT22
+DHT22_HUM_ERROR = 2.0   # ±2% для DHT22
 
-# Read DHT22 sensor
+# Читання даних із датчика DHT22
 async def read_dht22():
+    # Спроба зчитати температуру та вологість із датчика
     humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
     if temperature is not None and humidity is not None:
-        rpi_data["temperature"] = temperature
-        rpi_data["humidity"] = humidity
-        rpi_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        rpi_data["temperature"] = temperature  # Збереження температури
+        rpi_data["humidity"] = humidity  # Збереження вологості
+        rpi_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Оновлення часу
         logger.info(f"🌡️ DHT22 read successfully - Temp: {temperature:.1f}°C, Hum: {humidity:.1f}%")
     else:
-        rpi_data["temperature"] = None
+        rpi_data["temperature"] = None  # Скидання даних при помилці
         rpi_data["humidity"] = None
         rpi_data["last_update"] = None
         logger.warning("🌡️ Failed to read DHT22 sensor data")
 
-# Fetch weather data
+# Отримання даних погоди з OpenWeatherMap
 async def fetch_weather():
     global weather_data, weather_last_update
     try:
-        response = requests.get(WEATHER_URL)
-        response.raise_for_status()  # Raise an error for bad status codes
+        response = requests.get(WEATHER_URL)  # Запит до API погоди
+        response.raise_for_status()  # Перевірка на помилки HTTP
         data = response.json()
         if data["cod"] == 200:
             description = data["weather"][0]["description"]
             temp = data["main"]["temp"]
-            weather_data = f"{description} {temp:.1f}°C"
+            weather_data = f"{description} {temp:.1f}°C"  # Форматування даних погоди
             weather_last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             logger.info(f"🌦️ Weather fetched - {weather_data}")
         else:
@@ -84,10 +85,10 @@ async def fetch_weather():
         weather_last_update = None
         logger.error(f"🌦️ Weather fetch error: {e}")
 
-# Calculate averages and errors
+# Обчислення середніх значень та похибок
 async def calculate_averages():
     if esp_data["temperature"] is None or rpi_data["temperature"] is None:
-        avg_data["temperature"] = None
+        avg_data["temperature"] = None  # Скидання середнього при відсутності даних
         avg_data["humidity"] = None
         avg_data["temp_error"] = None
         avg_data["hum_error"] = None
@@ -97,31 +98,31 @@ async def calculate_averages():
             logger.warning("📡 ESP8266 data is unavailable - Possible disconnection")
         return
 
-    # Average temperature and humidity
+    # Обчислення середнього значення температури та вологості
     avg_data["temperature"] = (esp_data["temperature"] + rpi_data["temperature"]) / 2
     avg_data["humidity"] = (esp_data["humidity"] + rpi_data["humidity"]) / 2
 
-    # Combined error (root mean square of individual errors)
+    # Обчислення комбінованої похибки (RMS)
     avg_data["temp_error"] = ((DHT11_TEMP_ERROR**2 + DHT22_TEMP_ERROR**2) ** 0.5) / 2
     avg_data["hum_error"] = ((DHT11_HUM_ERROR**2 + DHT22_HUM_ERROR**2) ** 0.5) / 2
     avg_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"📊 Averages calculated - Temp: {avg_data['temperature']:.1f}±{avg_data['temp_error']:.1f}°C, Hum: {avg_data['humidity']:.1f}±{avg_data['hum_error']:.1f}%")
 
-# Handle ESP8266 data
+# Обробка даних від ESP8266
 async def handle_esp_update(request):
     global esp_data, last_esp_check
     try:
-        data = await request.json()
-        esp_data["temperature"] = data["temperature"]
-        esp_data["humidity"] = data["humidity"]
-        esp_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data = await request.json()  # Отримання JSON-даних від ESP8266
+        esp_data["temperature"] = data["temperature"]  # Оновлення температури
+        esp_data["humidity"] = data["humidity"]  # Оновлення вологості
+        esp_data["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Оновлення часу
         last_esp_check = datetime.now()
         logger.info(f"📡 ESP8266 data received - Temp: {data['temperature']:.1f}°C, Hum: {data['humidity']:.1f}%")
 
-        # Update averages
+        # Оновлення середніх значень
         await calculate_averages()
 
-        # Response to ESP8266
+        # Відправка відповіді ESP8266
         response = {
             "avgTemperature": avg_data["temperature"],
             "avgHumidity": avg_data["humidity"],
@@ -132,12 +133,12 @@ async def handle_esp_update(request):
         logger.error(f"📡 ESP update error: {e}")
         return web.Response(status=500)
 
-# Handle favicon request
+# Обробка запиту на favicon
 async def handle_favicon(request):
     logger.debug("🔍 Favicon request received")
-    return web.Response(status=204)  # No content
+    return web.Response(status=204)  # Повернення порожньої відповіді
 
-# API endpoint for data
+# API-ендпоінт для отримання даних
 async def get_data(request):
     global first_data_access
     if first_data_access:
@@ -159,19 +160,19 @@ async def get_data(request):
         "avg_last_update": avg_data["last_update"]
     })
 
-# Serve styles.css
+# Обробка запиту на styles.css
 async def handle_styles(request):
     logger.debug("🎨 Styles.css requested")
     with open("styles.css", "r") as f:
         return web.Response(text=f.read(), content_type="text/css")
 
-# Web interface
+# Обробка запиту на веб-інтерфейс
 async def handle_web(request):
     logger.debug("🌐 Web interface requested")
     with open("index.html", "r") as f:
         return web.Response(text=f.read(), content_type="text/html")
 
-# Telegram bot handlers
+# Обробка команди /start Telegram бота
 def start(update, context):
     logger.info("🤖 Telegram bot /start command received")
     update.message.reply_text(
@@ -186,6 +187,7 @@ def start(update, context):
         "🌐 /rpi - Get Raspberry Pi (DHT22) readings"
     )
 
+# Обробка команди /weather Telegram бота
 def weather(update, context):
     logger.info("🌦️ Telegram bot /weather command received")
     update.message.reply_text(
@@ -194,6 +196,7 @@ def weather(update, context):
         f"⏰ Last updated: {weather_last_update or 'N/A'}"
     )
 
+# Обробка команди /average Telegram бота
 def average(update, context):
     logger.info("📊 Telegram bot /average command received")
     if avg_data["temperature"] is None:
@@ -206,6 +209,7 @@ def average(update, context):
             f"⏰ Last updated: {avg_data['last_update']}"
         )
 
+# Обробка команди /esp Telegram бота
 def esp(update, context):
     logger.info("📡 Telegram bot /esp command received")
     if esp_data["temperature"] is None:
@@ -218,6 +222,7 @@ def esp(update, context):
             f"⏰ Last updated: {esp_data['last_update']}"
         )
 
+# Обробка команди /rpi Telegram бота
 def rpi(update, context):
     logger.info("🌐 Telegram bot /rpi command received")
     update.message.reply_text(
@@ -227,22 +232,26 @@ def rpi(update, context):
         f"⏰ Last updated: {rpi_data['last_update'] or 'N/A'}"
     )
 
-# Check ESP8266 status periodically
+# Регулярна перевірка статусу ESP8266
 async def check_esp_status(updater):
-    global last_esp_check
+    global esp_data, last_esp_check
     while True:
-        await asyncio.sleep(600)  # Every 10 minutes
-        if esp_data["last_update"] is None or (datetime.now() - datetime.strptime(esp_data["last_update"], "%Y-%m-%d %H:%M:%S")) > timedelta(minutes=1):
-            logger.warning("📡 ESP8266 not responding")
+        await asyncio.sleep(60)  # Перевірка кожні 60 секунд
+        current_time = datetime.now()
+        if esp_data["last_update"] is None or (current_time - datetime.strptime(esp_data["last_update"], "%Y-%m-%d %H:%M:%S")) > timedelta(minutes=1):
+            logger.warning("📡 ESP8266 not responding - resetting data to N/A")
+            esp_data["temperature"] = None  # Скидання температури при відсутності оновлень
+            esp_data["humidity"] = None  # Скидання вологості
+            esp_data["last_update"] = None  # Скидання часу оновлення
             updater.bot.send_message(chat_id=CHAT_ID, text="⚠️ ClimateGuard Alert: 📡 ESP8266 not responding! Check the connection!")
-            last_esp_check = datetime.now()
+            last_esp_check = current_time
         else:
             logger.debug("📡 ESP8266 status check - OK")
 
-# Main loop
+# Основний цикл програми
 async def main():
     logger.info("🌱 Starting ClimateGuard application")
-    # Setup web server
+    # Налаштування веб-сервера
     app = web.Application()
     app.router.add_post('/update', handle_esp_update)
     app.router.add_get('/', handle_web)
@@ -255,7 +264,7 @@ async def main():
     await site.start()
     logger.info("🌐 Web server started on 0.0.0.0:80")
 
-    # Setup Telegram bot
+    # Налаштування Telegram бота
     logger.info("🤖 Starting ClimateGuard Bot")
     updater = Updater(TELEGRAM_TOKEN, use_context=True)
     dp = updater.dispatcher
@@ -267,15 +276,15 @@ async def main():
     updater.start_polling()
     logger.info("🤖 ClimateGuard Bot polling started")
 
-    # Start ESP status check
+    # Запуск перевірки статусу ESP8266
     asyncio.create_task(check_esp_status(updater))
 
-    # Main loop
+    # Головний цикл оновлення
     while True:
-        await read_dht22()
-        await fetch_weather()
-        await calculate_averages()
-        await asyncio.sleep(10)  # Update every 10 seconds
+        await read_dht22()  # Зчитування даних із DHT22
+        await fetch_weather()  # Отримання даних погоди
+        await calculate_averages()  # Обчислення середніх значень
+        await asyncio.sleep(10)  # Оновлення кожні 10 секунд
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main())  # Запуск асинхронного циклу
