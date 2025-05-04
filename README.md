@@ -1,3 +1,5 @@
+![Header](screenshots/header-climateguard-iot.png)
+
 # 🌱 ClimateGuard-IoT
 
 🌡️ *ClimateGuard-IoT* is an IoT-based climate monitoring system designed for real-time tracking of temperature and humidity using Raspberry Pi Zero W and ESP8266 HW-364a. Featuring a web interface with live updates, a Telegram bot for remote access, and an OLED display for local visualization, this project combines hardware and software to deliver a seamless monitoring experience.
@@ -265,7 +267,7 @@ The architecture of *ClimateGuard-IoT* is designed to enable seamless communicat
     - Logs sensor readings, system events, and errors.
 - **Check**:
   ```bash
-  tail -f /opt/ClimateGuard-IoT/log/climateguard.log
+  tail -f /opt/ClimateGuard-IoT/src/rpi/logs/climateguard.log
   ```
 
 ---

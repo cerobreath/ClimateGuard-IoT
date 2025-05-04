@@ -1,59 +1,52 @@
-#include <Arduino.h>
-#include <Wire.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
-#include <Hash.h>
-#include <ESPAsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <Adafruit_Sensor.h>
-#include <DHT.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <ArduinoJson.h>
+#include <ESP8266HTTPClient.h>    // Бібліотека для HTTP-запитів до Raspberry Pi
+#include <ESPAsyncWebServer.h>    // Асинхронний веб-сервер для резервного інтерфейсу
+#include <DHT.h>                  // Бібліотека для роботи з датчиком DHT11
+#include <Adafruit_SSD1306.h>     // Бібліотека для керування OLED-дисплеєм
+#include <ArduinoJson.h>          // Бібліотека для обробки JSON-даних
 
-// Wi-Fi credentials
+// Налаштування Wi-Fi
 const char* ssid = "YOUR_SSID";
 const char* password = "YOUR_PASSWORD";
 
-// Static IP configuration
+// Статична IP-конфігурація для стабільності
 IPAddress staticIP(192, 168, 0, 51);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-// Raspberry Pi server
-const char* raspberryPiHost = "192.168.0.50";
-const int raspberryPiPort = 80;
+// Налаштування сервера Raspberry Pi
+const char* raspberryPiHost = "192.168.0.50";  // IP-адреса Raspberry Pi
+const int raspberryPiPort = 80;                // Порт для HTTP-з'єднання
 
-// DHT settings
-#define DHTPIN 5
-#define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
+// Налаштування датчика DHT11
+#define DHTPIN 5           // Пін для підключення DHT11 (D1)
+#define DHTTYPE DHT11      // Тип датчика (DHT11)
+DHT dht(DHTPIN, DHTTYPE);  // Ініціалізація датчика
 
-// OLED settings
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET    -1
-#define SCREEN_ADDRESS 0x3C
-#define OLED_SDA 14  // D5
-#define OLED_SCL 12  // D6
+// Налаштування OLED-дисплея
+#define SCREEN_WIDTH 128   // Ширина екрана в пікселях
+#define SCREEN_HEIGHT 64   // Висота екрана в пікселях
+#define OLED_RESET -1
+#define SCREEN_ADDRESS 0x3C // I2C-адреса OLED
+#define OLED_SDA 14
+#define OLED_SCL 12
 
+// Ініціалізація OLED
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-float t = 0.0;
-float h = 0.0;
-float avgT = 0.0;
-float avgH = 0.0;
-String weather = "N/A";
-bool serverActive = false;
-unsigned long previousMillis = 0;
-const long interval = 10000;
+float t = 0.0;                    // Температура
+float h = 0.0;                    // Вологість
+float avgT = 0.0;                 // Середня температура
+float avgH = 0.0;                 // Середня вологість
+String weather = "N/A";           // Погода
+bool serverActive = false;        // Статус зв’язку з Raspberry Pi
+unsigned long previousMillis = 0; // Час попереднього оновлення
+const long interval = 10000;      // Інтервал оновлення (10 секунд)
 
-AsyncWebServer server(80);
+AsyncWebServer server(80);        // Ініціалізація веб-сервера на порту 80
 
-String localIP;
+String localIP;                   // Зберігання локальної IP-адреси
 
-// Web interface
+// HTML-код для резервного веб-інтерфейсу
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -94,127 +87,128 @@ setInterval(() => {
 </body>
 </html>)rawliteral";
 
-String processor(const String& var){
-  if (var == "TEMPERATURE") return String(t, 1);
-  if (var == "HUMIDITY") return String(h, 1);
-  if (var == "IP") return WiFi.localIP().toString();
+// Функція для обробки змінних у HTML
+String processor(const String& var) {
+  if (var == "TEMPERATURE") return String(t, 1); // Повертає температуру з 1 знаком після коми
+  if (var == "HUMIDITY") return String(h, 1);    // Повертає вологість з 1 знаком після коми
   return String();
 }
 
+// Функція ініціалізації
 void setup() {
-  Serial.begin(115200);
-  dht.begin();
-  Wire.begin(OLED_SDA, OLED_SCL);
+  Serial.begin(115200);           // Ініціалізація серійного порту для налагодження
+  dht.begin();                    // Ініціалізація датчика DHT11
+  Wire.begin(OLED_SDA, OLED_SCL); // Ініціалізація I2C для OLED
 
-  // OLED
+  // Ініціалізація OLED
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println("OLED initialization failed!");
-    while (true);
+    Serial.println("OLED initialization failed!"); // Повідомлення про помилку ініціалізації
+    while (true);                                  // Блокування, якщо OLED не ініціалізовано
   }
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.setTextSize(1);
-  display.setCursor(0, 0);
+  display.clearDisplay();              // Очищення екрана
+  display.setTextColor(SSD1306_WHITE); // Встановлення білого кольору тексту
+  display.setTextSize(1);              // Встановлення розміру тексту
+  display.setCursor(0, 0);             // Встановлення курсору в початкову позицію
   display.println("Starting...");
-  display.display();
-  delay(1000);
+  display.display();                   // Оновлення екрана
+  delay(1000);                         // Затримка 1 секунда
 
-  // WiFi with static IP
-  WiFi.config(staticIP, gateway, subnet);
-  WiFi.begin(ssid, password);
+  // Налаштування Wi-Fi зі статичною IP-адресою
+  WiFi.config(staticIP, gateway, subnet); // Встановлення статичної IP
+  WiFi.begin(ssid, password);             // Підключення до Wi-Fi
   Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+    delay(500);        // Затримка 0.5 секунди
     Serial.print(".");
   }
-  localIP = WiFi.localIP().toString();
-  Serial.println("\nConnected! IP: " + localIP);
+  localIP = WiFi.localIP().toString();           // Отримання і збереження IP-адреси
+  Serial.println("\nConnected! IP: " + localIP); // Повідомлення про успішне підключення
 
-  // Web routes
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *req){
-    req->send_P(200, "text/html", index_html, processor);
+  // Налаштування веб-шляхів
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *req) {
+    req->send_P(200, "text/html", index_html, processor); // Відправка HTML-інтерфейсу
   });
-  server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *req){
-    String temp = String(t, 1);
-    req->send(200, "text/plain", temp);
+  server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *req) {
+    String temp = String(t, 1);         // Форматування температури
+    req->send(200, "text/plain", temp); // Відправка температури
   });
-  server.on("/humidity", HTTP_GET, [](AsyncWebServerRequest *req){
-    String hum = String(h, 1);
-    req->send(200, "text/plain", hum);
+  server.on("/humidity", HTTP_GET, [](AsyncWebServerRequest *req) {
+    String hum = String(h, 1);         // Форматування вологості
+    req->send(200, "text/plain", hum); // Відправка вологості
   });
-  server.begin();
+  server.begin(); // Запуск веб-сервера
 }
 
+// Функція відправки даних на Raspberry Pi
 void sendDataToRaspberryPi() {
-  WiFiClient client;
-  HTTPClient http;
+  WiFiClient client;             // Створення клієнта для HTTP
+  HTTPClient http;               // Ініціалізація HTTP-клієнта
 
-  String url = "http://" + String(raspberryPiHost) + ":" + String(raspberryPiPort) + "/update";
-  http.begin(client, url);
-  http.addHeader("Content-Type", "application/json");
+  String url = "http://" + String(raspberryPiHost) + ":" + String(raspberryPiPort) + "/update"; // URL для POST-запиту
+  http.begin(client, url); // Початок з’єднання
+  http.addHeader("Content-Type", "application/json"); // Встановлення заголовка JSON
 
-  StaticJsonDocument<200> doc;
-  doc["temperature"] = t;
-  doc["humidity"] = h;
-  String payload;
-  serializeJson(doc, payload);
+  StaticJsonDocument<200> doc; // Створення JSON-документа
+  doc["temperature"] = t;      // Додавання температури
+  doc["humidity"] = h;         // Додавання вологості
+  String payload;              // Змінна для серіалізації
+  serializeJson(doc, payload); // Серіалізація JSON у рядок
 
-  int httpCode = http.POST(payload);
-  if (httpCode == HTTP_CODE_OK) {
-    String response = http.getString();
+  int httpCode = http.POST(payload);        // Відправка POST-запиту
+  if (httpCode == HTTP_CODE_OK) {           // Перевірка успішного відправлення
+    String response = http.getString();     // Отримання відповіді
     StaticJsonDocument<200> responseDoc;
-    deserializeJson(responseDoc, response);
+    deserializeJson(responseDoc, response); // Десеріалізація відповіді
 
-    avgT = responseDoc["avgTemperature"];
-    avgH = responseDoc["avgHumidity"];
-    weather = responseDoc["weather"].as<String>();
+    avgT = responseDoc["avgTemperature"];          // Отримання середньої температури
+    avgH = responseDoc["avgHumidity"];             // Отримання середньої вологості
+    weather = responseDoc["weather"].as<String>(); // Отримання погоди
     serverActive = true;
   } else {
     serverActive = false;
     Serial.println("Failed to connect to Raspberry Pi: " + String(httpCode));
   }
-  http.end();
+  http.end(); // Закриття з’єднання
 }
 
+// Головний цикл
 void loop() {
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
+  unsigned long currentMillis = millis();           // Поточний час у мілісекундах
+  if (currentMillis - previousMillis >= interval) { // Перевірка інтервалу
+    previousMillis = currentMillis;                 // Оновлення попереднього часу
 
-    // Read DHT11 sensor
-    float newT = dht.readTemperature();
-    float newH = dht.readHumidity();
+    // Читання даних з датчика DHT11
+    float newT = dht.readTemperature(); // Читання температури
+    float newH = dht.readHumidity();    // Читання вологості
 
-    if (!isnan(newT)) t = newT;
-    if (!isnan(newH)) h = newH;
+    if (!isnan(newT)) t = newT; // Оновлення температури, якщо дані валідні
+    if (!isnan(newH)) h = newH; // Оновлення вологості, якщо дані валідні
 
-    // Send data to Raspberry Pi and get average/weather
-    if (WiFi.status() == WL_CONNECTED) {
-      sendDataToRaspberryPi();
+    // Відправка даних на Raspberry Pi
+    if (WiFi.status() == WL_CONNECTED) { // Перевірка підключення до Wi-Fi
+      sendDataToRaspberryPi();           // Виклик функції відправки
     } else {
       serverActive = false;
     }
 
-    // OLED update
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setCursor(0, 0);
+    // Оновлення OLED-дисплея
+    display.clearDisplay();  // Очищення екрана
+    display.setTextSize(1);  // Встановлення розміру тексту
+    display.setCursor(0, 0); // Встановлення курсору
 
     if (isnan(t) || isnan(h)) {
       display.println("Sensor Error");
-    } else if (!serverActive) {
-      display.println("RPi Offline");
+    } else if (!serverActive) {       // Режим офлайн при відсутності зв’язку
+      display.println("RPi Offline"); // Повідомлення про офлайн Raspberry Pi
       display.print("T:");
       display.print(t, 1);
-      display.print((char)247);
       display.println("C");
       display.print("H:");
       display.print(h, 1);
       display.println("%");
-    } else {
+    } else { // Режим онлайн
       display.print("Avg T:");
       display.print(avgT, 1);
-      display.print((char)247);
       display.println("C");
       display.print("Avg H:");
       display.print(avgH, 1);
@@ -223,13 +217,14 @@ void loop() {
       display.println(weather);
     }
 
-    // IP at the bottom
+    // Виведення IP-адреси внизу екрана
     display.setTextSize(1);
-    display.setCursor(0, SCREEN_HEIGHT - 8);
+    display.setCursor(0, SCREEN_HEIGHT - 8); // Встановлення курсору внизу
     display.print("IP:");
     display.print(localIP);
 
-    display.display();
-    Serial.printf("Temp: %.1f C | Hum: %.1f %% | Avg T: %.1f | Avg H: %.1f | Weather: %s\n", t, h, avgT, avgH, weather.c_str());
+    display.display(); // Оновлення екрана
+    Serial.printf("Temp: %.1f C | Hum: %.1f %% | Avg T: %.1f | Avg H: %.1f | Weather: %s\n",
+                  t, h, avgT, avgH, weather.c_str()); // Виведення даних у Serial
   }
 }
