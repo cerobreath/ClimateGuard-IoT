@@ -176,60 +176,60 @@ async def handle_web(request):
 def start(update, context):
     logger.info("Telegram bot received /start command")
     update.message.reply_text(
-        "Welcome to ClimateGuard Bot!\n"
-        "Your friendly companion for real-time climate monitoring!\n"
-        "Stay updated with temperature, humidity, and weather forecasts from Chernihiv!\n"
-        "Click the buttons below to explore the environment around you!\n\n"
-        "Available Commands:\n"
-        "/weather - Check the current weather\n"
-        "/average - View averaged sensor data\n"
-        "/esp - Get ESP8266 (DHT11) readings\n"
-        "/rpi - Get Raspberry Pi (DHT22) readings"
+        "🌱 Welcome to ClimateGuard Bot! 🌡️\n"
+        "Your friendly companion for real-time climate monitoring! 🌦️\n"
+        "Stay updated with temperature, humidity, and weather forecasts from Chernihiv! 🤖\n"
+        "Click the buttons below to explore the environment around you! 🌍\n\n"
+        "📌 Available Commands:\n"
+        "🌡️ /weather - Check the current weather\n"
+        "📊 /average - View averaged sensor data\n"
+        "📡 /esp - Get ESP8266 (DHT11) readings\n"
+        "🌐 /rpi - Get Raspberry Pi (DHT22) readings"
     )
 
 # Обробка команди /weather Telegram бота
 def weather(update, context):
     logger.info("Telegram bot received /weather command")
     update.message.reply_text(
-        f"Weather in Chernihiv:\n"
-        f"{weather_data}\n"
-        f"Last updated: {weather_last_update or 'N/A'}"
+        f"🌤️ Weather in Chernihiv:\n"
+        f"🌡️ {weather_data}\n"
+        f"⏰ Last updated: {weather_last_update or 'N/A'}"
     )
 
 # Обробка команди /average Telegram бота
 def average(update, context):
     logger.info("Telegram bot received /average command")
     if avg_data["temperature"] is None:
-        update.message.reply_text("Average data unavailable - ESP8266 might be offline!")
+        update.message.reply_text("📡 Average data unavailable - ESP8266 might be offline! ⚠️")
     else:
         update.message.reply_text(
-            f"Average Climate Data:\n"
-            f"Temperature: {avg_data['temperature']:.1f} ± {avg_data['temp_error']:.1f} °C\n"
-            f"Humidity: {avg_data['humidity']:.1f} ± {avg_data['hum_error']:.1f} %\n"
-            f"Last updated: {avg_data['last_update']}"
+            f"📈 Average Climate Data:\n"
+            f"🌡️ Temperature: {avg_data['temperature']:.1f} ± {avg_data['temp_error']:.1f} °C\n"
+            f"💧 Humidity: {avg_data['humidity']:.1f} ± {avg_data['hum_error']:.1f} %\n"
+            f"⏰ Last updated: {avg_data['last_update']}"
         )
 
 # Обробка команди /esp Telegram бота
 def esp(update, context):
     logger.info("Telegram bot received /esp command")
     if esp_data["temperature"] is None:
-        update.message.reply_text("ESP8266 offline - Check the connection!")
+        update.message.reply_text("📡 ESP8266 offline - Check the connection! ⚠️")
     else:
         update.message.reply_text(
-            f"ESP8266 (DHT11) Data:\n"
-            f"Temperature: {esp_data['temperature']:.1f} °C\n"
-            f"Humidity: {esp_data['humidity']:.1f} %\n"
-            f"Last updated: {esp_data['last_update']}"
+            f"📡 ESP8266 (DHT11) Data:\n"
+            f"🌡️ Temperature: {esp_data['temperature']:.1f} °C\n"
+            f"💧 Humidity: {esp_data['humidity']:.1f} %\n"
+            f"⏰ Last updated: {esp_data['last_update']}"
         )
 
 # Обробка команди /rpi Telegram бота
 def rpi(update, context):
     logger.info("Telegram bot received /rpi command")
     update.message.reply_text(
-        f"Raspberry Pi (DHT22) Data:\n"
-        f"Temperature: {rpi_data['temperature']:.1f} °C\n"
-        f"Humidity: {rpi_data['humidity']:.1f} %\n"
-        f"Last updated: {rpi_data['last_update'] or 'N/A'}"
+        f"🌐 Raspberry Pi (DHT22) Data:\n"
+        f"🌡️ Temperature: {rpi_data['temperature']:.1f} °C\n"
+        f"💧 Humidity: {rpi_data['humidity']:.1f} %\n"
+        f"⏰ Last updated: {rpi_data['last_update'] or 'N/A'}"
     )
 
 # Регулярна перевірка статусу ESP8266
@@ -243,7 +243,7 @@ async def check_esp_status(updater):
             esp_data["temperature"] = None  # Скидання температури при відсутності оновлень
             esp_data["humidity"] = None  # Скидання вологості
             esp_data["last_update"] = None  # Скидання часу оновлення
-            updater.bot.send_message(chat_id=CHAT_ID, text="ClimateGuard Alert: ESP8266 not responding! Check the connection!")
+            updater.bot.send_message(chat_id=CHAT_ID, text="⚠️ ClimateGuard Alert: 📡 ESP8266 not responding! Check the connection!")
             last_esp_check = current_time
         else:
             logger.debug("ESP8266 status check successful")
